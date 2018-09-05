@@ -1,4 +1,9 @@
-import os, argparse, datetime, errno, comtypes.client
+import os
+import argparse
+import datetime
+import errno
+import subprocess
+import shutil
 import json
 
 
@@ -18,24 +23,62 @@ def main(job_title, company, username=None, password=None, url=None, lan = None)
         lan = decide_lan()
 
     source = os.path.join('src', 'Danish' if lan is 'DA' else 'English')
-    destination = os.path.join('ansøgnings_superfolder', company)
-
-
+    destination = os.path.join('ansoegnings_superfolder', company)
 
     if synk:
-        get_latest(source)
+        latex_latest = get_latest(source)
+    else:
+        latex_latest = get_local_latest(os.path.join(source, 'latex'))
+
+    application(source, job_title, company, destination)
+
+    copy(latex_latest, os.path.join(destination, 'tmp', 'latex'))
+    preamble(os.path.join(destination,'tmp','latex','preamble.tex'), company)
 
 
-def preamble(path, jobtitle, company, destination):
-    pass
+
+def preamble(source, company):
+    with open(source, 'r') as f:
+        filedate = f.read().replace('COMPANYPLACEHOLDER', company)
+
+    with open(source, 'w') as f:
+        f.write(filedate)
+
+
+def copy(source, destination):
+    try:
+        print(source)
+        print(destination)
+        shutil.copytree(source, destination)
+    except OSError as e:
+        # If the error was caused because the source wasn't a directory
+        if e.errno == errno.ENOTDIR:
+            print('hmm')
+            shutil.copy(source, destination)
+        else:
+            print('Directory not copied. Error: %s' % e)
+
+
+
+def get_local_latest(source):
+    local_latest = '2000-01-01 00:00:00'
+    folders = [ item for item in os.listdir(source) if os.path.isdir(os.path.join(source, item)) ]
+    for folder in folders:
+        if datetime.datetime.fromisoformat(folder) > datetime.datetime.fromisoformat(str(local_latest)):
+            local_latest = datetime.datetime.fromisoformat(folder)
+    return os.path.join(source, str(local_latest))
 
 
 def get_latest(path):
+    print('NOT SUPPORTED YET!!!!!!!!!!1!')
+    exit(0)
+    path = os.path.join(path + str(datetime.datetime.today()))
     try:
-        os.makedirs(os.path.join(path + str(datetime.datetime.today())))
+        os.makedirs(path)
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
+    return path
 
 
 def application(source, jobtitle, company, destination):
@@ -57,7 +100,7 @@ def application(source, jobtitle, company, destination):
 
 
 def decide_lan():
-    lan =  input('What language? [DA] or EN:    ')
+    lan =  input('What language? [DA] or EN: ')
     if len(lan) == 0:
         lan = 'DA'
     elif lan is not 'DA' and lan is not 'EN':
@@ -71,15 +114,9 @@ def convert_to_pdf(source, destination):
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
+    bash = f'libreoffice --headless --invisible --norestore --convert-to pdf --outdir {os.path.abspath(destination)} {os.path.abspath(source)}'
 
-    wd_format_PDF = 17
-    out_file = os.path.join(destination, 'ansøgning.pdf')
-    word = comtypes.client.CreateObject('Word.Application')
-    doc = word.Documents.Open(source)
-    doc.SaveAs(out_file, FileFormat=wd_format_PDF)
-    doc.Close()
-    word.Quit()
-
+    subprocess.check_output(bash.split())
 
 ap = argparse.ArgumentParser(description="Application Generator", epilog="This requires that you have some pretty presice instructions. See sourcecode..")
 
