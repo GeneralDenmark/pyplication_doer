@@ -1,10 +1,10 @@
 import os
 import argparse
+import dateutil.parser
 import datetime
 import errno
 import subprocess
 import shutil
-import json
 
 
 def main(job_title, company, username=None, password=None, url=None, lan = None):
@@ -48,6 +48,10 @@ def main(job_title, company, username=None, password=None, url=None, lan = None)
     clean_up(os.path.join(destination, 'tmp'))
 
     copy_last_parts(destination)
+
+def fromisoformat(timestamp):
+    return dateutil.parser.parse(timestamp)
+
 
 def clean_up(path):
     shutil.rmtree(path)
@@ -97,8 +101,8 @@ def get_local_latest(source):
     local_latest = '2000-01-01 00:00:00'
     folders = [ item for item in os.listdir(source) if os.path.isdir(os.path.join(source, item)) ]
     for folder in folders:
-        if datetime.datetime.fromisoformat(folder) > datetime.datetime.fromisoformat(str(local_latest)):
-            local_latest = datetime.datetime.fromisoformat(folder)
+        if fromisoformat(folder) > fromisoformat(str(local_latest)):
+            local_latest = fromisoformat(folder)
     return os.path.join(source, str(local_latest))
 
 
