@@ -23,14 +23,17 @@ def main(job_title, company, username=None, password=None, url=None, lan = None)
     while lan is not 'DA' and lan is not 'EN':
         lan = decide_lan()
 
+    current_location = os.path.dirname(os.path.abspath(__file__))
+    print('Tissemand' + current_location)
+
     print(f'\nCreating folder for: {company}\n'
           f'With jobtitle {job_title}')
     print(f'Synk is ' + 'enabled' if synk else 'disenabled')
     print(f'Language is {lan}')
 
-    source = os.path.abspath(os.path.join('src', 'Danish' if lan is 'DA' else 'English'))
+    source = os.path.join(current_location, 'src', 'Danish' if lan is 'DA' else 'English')
     print(f'get original path: {source}')
-    destination = os.path.abspath(os.path.join('ansøgnings_superfolder', company.replace('/', '').replace(' ', '')))
+    destination = os.path.join(current_location, 'ansøgnings_superfolder', company.replace('/', '').replace(' ', ''))
     print(f'destination is: {destination}')
 
     if synk:
@@ -47,7 +50,7 @@ def main(job_title, company, username=None, password=None, url=None, lan = None)
 
     clean_up(os.path.join(destination, 'tmp'))
 
-    copy_last_parts(destination)
+    copy_last_parts(current_location, destination)
 
 def fromisoformat(timestamp):
     return dateutil.parser.parse(timestamp)
@@ -57,22 +60,22 @@ def clean_up(path):
     shutil.rmtree(path)
 
 
-def copy_last_parts(destination):
-    src = os.path.abspath('src/pp_eb')
+def copy_last_parts(current_location, destination):
+    src = os.path.join(current_location, 'src/pp_eb')
     src_files = os.listdir(src)
     for filenames in src_files:
         full_filename = os.path.join(src, filenames)
         if (os.path.isfile(full_filename)):
             shutil.copy(full_filename, destination)
 
+
 def compile_latex(path):
-    total_path = os.path.abspath(path)
 
     bash = 'xelatex CV.tex'
-    subprocess.call(bash.split(), cwd=total_path, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    subprocess.call(bash.split(), cwd=path, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     try:
         move_command = 'cp CV.pdf ../../Curriculum_Vitae.pdf'
-        subprocess.Popen(move_command.split(), cwd=total_path)
+        subprocess.Popen(move_command.split(), cwd=path)
     except Exception as e:
         print(e)
 
