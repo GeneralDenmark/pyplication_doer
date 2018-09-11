@@ -28,9 +28,9 @@ def main(job_title, company, username=None, password=None, url=None, lan = None)
     print(f'Synk is ' + 'enabled' if synk else 'disenabled')
     print(f'Language is {lan}')
 
-    source = os.path.join('src', 'Danish' if lan is 'DA' else 'English')
+    source = os.path.abspath(os.path.join('src', 'Danish' if lan is 'DA' else 'English'))
     print(f'get original path: {source}')
-    destination = os.path.join('ansøgnings_superfolder', company.replace('/', '').replace(' ', ''))
+    destination = os.path.abspath(os.path.join('ansøgnings_superfolder', company.replace('/', '').replace(' ', '')))
     print(f'destination is: {destination}')
 
     if synk:
@@ -69,12 +69,13 @@ def compile_latex(path):
     total_path = os.path.abspath(path)
 
     bash = 'xelatex CV.tex'
-    subprocess.call(bash.split(), cwd=path, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    subprocess.call(bash.split(), cwd=total_path, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     try:
         move_command = 'cp CV.pdf ../../Curriculum_Vitae.pdf'
-        subprocess.Popen(move_command.split(), cwd=path)
+        subprocess.Popen(move_command.split(), cwd=total_path)
     except Exception as e:
         print(e)
+
 
 def preamble(source, company):
     with open(source, 'r') as f:
@@ -94,7 +95,6 @@ def copy(source, destination):
             shutil.copy(source, destination)
         else:
             print('Directory not copied. Error: %s' % e)
-
 
 
 def get_local_latest(source):
@@ -138,7 +138,7 @@ def application(source, jobtitle, company, destination):
 
 
 def decide_lan():
-    lan =  input('What language? [DA] or EN: ')
+    lan = input('What language? [DA] or EN: ')
     if len(lan) == 0:
         lan = 'DA'
     elif lan is not 'DA' and lan is not 'EN':
@@ -153,7 +153,7 @@ def convert_to_pdf(source, destination):
         if e.errno != errno.EEXIST:
             raise
         print('Destination located!')
-    bash = f'libreoffice --headless --invisible --norestore --convert-to pdf --outdir {os.path.abspath(destination)} application.rtf'
+    bash = f'libreoffice --headless --invisible --norestore --convert-to pdf --outdir {destination} application.rtf'
     try:
         subprocess.Popen(bash.split(), cwd=source)
     except Exception as e:
